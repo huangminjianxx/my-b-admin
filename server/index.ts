@@ -10,8 +10,10 @@ app.get('/api/user', (_, res) => {
 
 // 生产环境启动端口
 const PORT = process.env.PORT || 3000
-app.listen(PORT, () => {
-  console.log(`✅ Express 已启动: http://localhost:${PORT}`)
-})
+if (process.env.VITE === undefined) {
+    app.listen(3000, () => {
+      console.log("✅ Express 已启动: http://localhost:3000")
+    })
+  }
 
 export default app
