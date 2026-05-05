@@ -12,7 +12,7 @@ app.use(express.static(path.join(__dirname, 'dist')));
 
 // 3. 关键：解决单页应用路由问题
 // 所有的非 API 请求，都返回 index.html，交给前端路由处理
-app.get('/:any*', (req, res) => {
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 const PORT = process.env.PORT || 3000;
