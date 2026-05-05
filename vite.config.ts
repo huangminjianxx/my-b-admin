@@ -4,15 +4,13 @@ import path from 'path'
 import { viteExpressPlugin } from './server/vite-plugin-express'
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(),viteExpressPlugin()],
+  plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'), // ✔ 正确
     },
   },
   build: {
-    reportCompressedSize: false,
-    chunkSizeWarningLimit: 1500,
     rollupOptions: {
       output: {
         manualChunks(id) {

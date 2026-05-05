@@ -1,36 +1,21 @@
-name: Deploy to Server
-
+name: 部署前端
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      # --------------------------
-      # ✅ 在 GitHub 服务器打包
-      # --------------------------
-      - name: Install dependencies
+      - name: 安装依赖
         run: npm install
 
-      - name: Build frontend (dist)
+      - name: 打包前端
         run: npm run build
 
-      # --------------------------
-      # ✅ 登录你的阿里云服务器
-      # --------------------------
-      - name: Deploy to server
+      - name: 部署到服务器
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
