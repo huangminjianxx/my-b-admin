@@ -1,4 +1,4 @@
-FROM registry.aliyuncs.com/node:20-alpine
+FROM docker.mirrors.ustc.edu.cn/library/node:20-alpine
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
