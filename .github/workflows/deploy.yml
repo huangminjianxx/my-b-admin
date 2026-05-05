@@ -1,9 +1,9 @@
-name: Deploy Vite Project (Robust Offline Mode)
+name: Deploy Fullstack Project (Vite + Express)
 
 on:
   push:
     branches:
-      - main
+      - main # 推送到 main 分支时触发
 
 jobs:
   build-and-deploy:
@@ -17,10 +17,12 @@ jobs:
         with:
           node-version: 22
 
-      - name: 3. 构建 Docker 镜像并打包
+      - name: 3. 构建 Docker 镜像并导出为离线包
         run: |
-          docker build -t vite-app:latest .
-          docker save vite-app:latest -o vite-app.tar
+          # 构建镜像，此时会执行 Dockerfile 中的前端打包和后端准备
+          docker build -t vite-express-app:latest .
+          # 将镜像保存为 tar 文件，避开服务器 pull 镜像超时的坑
+          docker save vite-express-app:latest -o release.tar
 
       - name: 4. 通过 SCP 将镜像发送到服务器
         uses: appleboy/scp-action@master
@@ -28,23 +30,39 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "vite-app.tar"
-          target: "~/" # 修改点：传输到当前用户的家目录，避免权限问题
-          rm: false    # 修改点：严禁设置 rm: true，防止删除系统目录
+          source: "release.tar"
+          target: "~/" # 传送到家目录，最稳妥
+          rm: false
 
-      - name: 5. 远程执行部署脚本
+      - name: 5. 远程 SSH 执行部署
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             set -e
-            docker load -i ~/vite-app.tar
-            docker stop fullstack-container || true
-            docker rm fullstack-container || true
             
-            # 映射服务器的 8080 到 Express 的 3000
+            echo "--- 正在载入本地镜像 (不联网) ---"
+            docker load -i ~/release.tar
+
+            echo "--- 正在重启全栈容器 ---"
+            # 停止并删除旧容器
+            docker stop my-fullstack-app || true
+            docker rm my-fullstack-app || true
+
+            # 启动新容器
+            # 假设 Express 监听 3000 端口，我们映射到服务器的 8080
             docker run -d \
-              --name fullstack-container \
+              --name my-fullstack-app \
               -p 8080:3000 \
               --restart always \
-              vite-app:latest
+              vite-express-app:latest
+
+            echo "--- 清理临时文件 ---"
+            rm ~/release.tar
+            # 清理无用的虚悬镜像，节省磁盘空间
+            docker image prune -f
+
+            echo "--- 部署成功！ ---"
+            docker ps -f name=my-fullstack-app
