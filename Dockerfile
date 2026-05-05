@@ -4,21 +4,27 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-RUN npm run build  # 生成 dist 文件夹
+RUN npm run build
 
-# --- 阶段二：运行后端 ---
+# --- 阶段二：运行全栈服务 (Express) ---
 FROM node:22-alpine
 WORKDIR /app
 
-# 拷贝后端依赖配置
+# 1. 拷贝依赖配置文件
 COPY package*.json ./
-# 只安装生产环境依赖
+
+# 2. 安装生产环境所需的依赖 (express 等)
 RUN npm install --production
 
-# 从第一阶段拷贝前端打包好的 dist 文件夹到后端工作目录
+# 3. 从第一阶段拷贝前端打包好的产物
 COPY --from=build-front /app/dist ./dist
-# 拷贝后端代码 (假设你的后端入口是 server.js)
-COPY server.js ./
 
+# 4. 拷贝后端入口文件 index.js 到容器
+# 如果你的 index.js 引用了其他后端文件夹(如 routes/), 建议使用 COPY . .
+COPY index.js ./
+
+# 5. 暴露端口 (Express 监听的端口)
 EXPOSE 3000
-CMD ["node", "server.js"]
+
+# 6. 启动命令
+CMD ["node", "index.js"]
