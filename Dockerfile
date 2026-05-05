@@ -21,7 +21,7 @@ COPY --from=build-front /app/dist ./dist
 
 # 4. 拷贝后端入口文件 index.js 到容器
 # 如果你的 index.js 引用了其他后端文件夹(如 routes/), 建议使用 COPY . .
-COPY index.js ./
+COPY server/index.js ./
 
 # 5. 暴露端口 (Express 监听的端口)
 EXPOSE 3000
