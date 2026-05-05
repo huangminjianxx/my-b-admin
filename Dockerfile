@@ -1,5 +1,5 @@
 # 第一阶段：编译阶段
-FROM node:18-alpine AS build-stage
+FROM node:22-alpine AS build-stage
 
 WORKDIR /app
 
