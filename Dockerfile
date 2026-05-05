@@ -1,25 +1,24 @@
-# 第一阶段：编译阶段
-FROM node:22-alpine AS build-stage
-
+# --- 阶段一：构建前端 ---
+FROM node:22-alpine AS build-front
 WORKDIR /app
-
-# 利用 Docker 缓存机制，先安装依赖
 COPY package*.json ./
 RUN npm install
-
-# 复制源码并构建
 COPY . .
-RUN npm run build
+RUN npm run build  # 生成 dist 文件夹
 
-# 第二阶段：生产阶段
-FROM nginx:alpine AS production-stage
+# --- 阶段二：运行后端 ---
+FROM node:22-alpine
+WORKDIR /app
 
-# 复制编译后的静态文件到 Nginx 目录
-COPY --from=build-stage /app/dist /usr/share/nginx/html
+# 拷贝后端依赖配置
+COPY package*.json ./
+# 只安装生产环境依赖
+RUN npm install --production
 
-# 复制自定义 Nginx 配置（可选，见下文）
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+# 从第一阶段拷贝前端打包好的 dist 文件夹到后端工作目录
+COPY --from=build-front /app/dist ./dist
+# 拷贝后端代码 (假设你的后端入口是 server.js)
+COPY server.js ./
 
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 3000
+CMD ["node", "server.js"]
