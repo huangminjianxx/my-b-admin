@@ -1,8 +1,12 @@
 import { Navigate } from 'react-router-dom'
 import Layout from '@/layout/Layout'
 import Home from '@/views/Home'
-import System from '@/views/System'
 import Login from '@/views/Login'
+import { lazy, Suspense } from 'react'
+const System = lazy(() => import('@/views/System'))
+const lazyLoad = (children: React.ReactNode) => {
+  return <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+}
 
 // 纯路由配置
 export const routes = [
@@ -14,7 +18,7 @@ export const routes = [
     children: [
       { path: '', element: <Navigate to="/home" /> },
       { path: 'home', element: <Home /> },
-      { path: 'system', element: <System /> },
+      { path: 'system', element: lazyLoad(<System />) },
     ],
   },
 
