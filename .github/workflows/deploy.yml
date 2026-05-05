@@ -28,7 +28,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd /root/your-project
+            cd /home/admin/vite-express-docker/my-b-amin
             git pull
             docker compose down
             docker compose up -d --build
