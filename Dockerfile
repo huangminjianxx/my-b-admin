@@ -27,4 +27,4 @@ COPY server/index.js ./
 EXPOSE 3000
 
 # 6. 启动命令
-CMD ["node", "index.js"]
+CMD ["node", "index.cjs"]
