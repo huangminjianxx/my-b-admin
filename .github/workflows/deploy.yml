@@ -3,7 +3,7 @@ name: Deploy Vite Project (Robust Offline Mode)
 on:
   push:
     branches:
-      - main # 只有推送代码到 main 分支时触发
+      - main
 
 jobs:
   build-and-deploy:
@@ -15,15 +15,12 @@ jobs:
       - name: 2. 设置 Node.js 环境
         uses: actions/setup-node@v3
         with:
-          node-version: 22 # 确保版本兼容 Vite 6/8
+          node-version: 22
 
       - name: 3. 构建 Docker 镜像并打包
         run: |
-          # 在 GitHub Actions 的虚拟环境中构建镜像
           docker build -t vite-app:latest .
-          # 将镜像保存为 tar 文件，方便后续传输
           docker save vite-app:latest -o vite-app.tar
-          echo "镜像已打包完成: $(ls -lh vite-app.tar)"
 
       - name: 4. 通过 SCP 将镜像发送到服务器
         uses: appleboy/scp-action@master
@@ -32,8 +29,8 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "vite-app.tar"
-          target: "/tmp" # 传输到服务器的临时目录
-          rm: true # 如果服务器上已存在同名文件则先删除
+          target: "~/" # 修改点：传输到当前用户的家目录，避免权限问题
+          rm: false    # 修改点：严禁设置 rm: true，防止删除系统目录
 
       - name: 5. 远程执行部署脚本 (离线模式)
         uses: appleboy/ssh-action@master
@@ -42,35 +39,24 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            # 开启严格模式：任何一步失败则停止脚本并报错
             set -e
 
-            echo "--- 检查 Docker 环境 ---"
-            if ! [ -x "$(command -v docker)" ]; then
-              echo "错误: 目标服务器未安装 Docker，请先安装 Docker。" >&2
-              exit 1
-            fi
+            echo "--- 正在从家目录加载镜像 ---"
+            # 修改点：对应家目录路径 ~/vite-app.tar
+            docker load -i ~/vite-app.tar
 
-            echo "--- 正在从本地文件加载镜像 (无需联网) ---"
-            # 这一步代替了 docker pull，完全绕过 Docker Hub 网络限制
-            docker load -i /tmp/vite-app.tar
-
-            echo "--- 正在清理旧容器 ---"
-            # 停止并删除旧容器，|| true 保证第一次部署时不会因为找不到旧容器而报错
+            echo "--- 正在重启容器 ---"
             docker stop vite-app-container || true
             docker rm vite-app-container || true
 
-            echo "--- 正在启动新容器 ---"
-            # -p 8080:80 表示访问地址为 http://服务器IP:8080
-            # 如果你想用 80 端口，请修改为 -p 80:80
             docker run -d \
               --name vite-app-container \
               -p 8080:80 \
               --restart always \
               vite-app:latest
 
-            echo "--- 清理临时传输文件 ---"
-            rm /tmp/vite-app.tar
+            echo "--- 清理传输文件 ---"
+            rm ~/vite-app.tar
 
-            echo "--- 部署完成！当前运行中的容器： ---"
+            echo "--- 部署完成！ ---"
             docker ps -f name=vite-app-container
